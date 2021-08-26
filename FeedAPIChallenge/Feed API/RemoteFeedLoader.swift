@@ -19,19 +19,19 @@ public final class RemoteFeedLoader: FeedLoader {
 	}
 
 	public func load(completion: @escaping (FeedLoader.Result) -> Void) {
-		client.get(from: url, completion: { result in
+		client.get(from: url, completion: { [weak self] result in
+
+			guard self != nil else { return }
+
 			switch result {
 			case let .success((data, response)):
-				guard response.statusCode == 200 else {
+				do {
+					let items = try FeedImageMapper.map(data, response)
+					completion(.success(items))
+				} catch {
 					completion(.failure(Error.invalidData))
-					return
 				}
 
-				if let root = try? JSONDecoder().decode(Root.self, from: data) {
-					completion(.success(root.items.map { $0.item }))
-				} else {
-					completion(.failure(Error.invalidData))
-				}
 			default:
 				completion(.failure(Error.connectivity))
 			}
@@ -39,20 +39,33 @@ public final class RemoteFeedLoader: FeedLoader {
 	}
 }
 
-private struct Root: Decodable {
-	var items: [Item]
-}
+private final class FeedImageMapper {
+	private struct Root: Decodable {
+		var items: [Item]
+	}
 
-private struct Item: Decodable {
-	let image_id: UUID
-	let image_desc: String?
-	let image_loc: String?
-	let image_url: URL
+	private struct Item: Decodable {
+		let image_id: UUID
+		let image_desc: String?
+		let image_loc: String?
+		let image_url: URL
 
-	var item: FeedImage {
-		return FeedImage(id: image_id,
-		                 description: image_desc,
-		                 location: image_loc,
-		                 url: image_url)
+		var item: FeedImage {
+			return FeedImage(id: image_id,
+			                 description: image_desc,
+			                 location: image_loc,
+			                 url: image_url)
+		}
+	}
+
+	private static var OK_200: Int { return 200 }
+
+	static func map(_ data: Data, _ response: HTTPURLResponse) throws -> [FeedImage] {
+		guard response.statusCode == OK_200 else {
+			throw RemoteFeedLoader.Error.invalidData
+		}
+
+		let root = try JSONDecoder().decode(Root.self, from: data)
+		return root.items.map { $0.item }
 	}
 }
