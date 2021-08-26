@@ -27,8 +27,8 @@ public final class RemoteFeedLoader: FeedLoader {
 					return
 				}
 
-				if let _ = try? JSONDecoder().decode(Root.self, from: data) {
-					completion(.success([]))
+				if let root = try? JSONDecoder().decode(Root.self, from: data) {
+					completion(.success(root.items.map { $0.item }))
 				} else {
 					completion(.failure(Error.invalidData))
 				}
@@ -44,15 +44,15 @@ private struct Root: Decodable {
 }
 
 private struct Item: Decodable {
-	let imageId: UUID
-	let imageDesc: String?
-	let imageLoc: String?
-	let imageUrl: URL
+	let image_id: UUID
+	let image_desc: String?
+	let image_loc: String?
+	let image_url: URL
 
 	var item: FeedImage {
-		return FeedImage(id: imageId,
-		                 description: imageDesc,
-		                 location: imageLoc,
-		                 url: imageUrl)
+		return FeedImage(id: image_id,
+		                 description: image_desc,
+		                 location: image_loc,
+		                 url: image_url)
 	}
 }
