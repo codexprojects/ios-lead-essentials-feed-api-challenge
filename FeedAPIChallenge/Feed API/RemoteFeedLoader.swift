@@ -27,12 +27,30 @@ public final class RemoteFeedLoader: FeedLoader {
 					return
 				}
 
-				if let _ = try? JSONSerialization.jsonObject(with: data) {} else {
+				if let _ = try? JSONDecoder().decode(Root.self, from: data) {} else {
 					completion(.failure(Error.invalidData))
 				}
 			default:
 				completion(.failure(Error.connectivity))
 			}
 		})
+	}
+}
+
+private struct Root: Decodable {
+	var items: [Item]
+}
+
+private struct Item: Decodable {
+	let imageId: UUID
+	let imageDesc: String?
+	let imageLoc: String?
+	let imageUrl: URL
+
+	var item: FeedImage {
+		return FeedImage(id: imageId,
+		                 description: imageDesc,
+		                 location: imageLoc,
+		                 url: imageUrl)
 	}
 }
