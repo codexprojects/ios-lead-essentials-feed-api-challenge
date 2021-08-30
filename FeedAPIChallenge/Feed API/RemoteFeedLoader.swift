@@ -60,7 +60,7 @@ private final class FeedImageMapper {
 			return .failure(RemoteFeedLoader.Error.invalidData)
 		}
 
-		let items = root.items.map { $0.item }
+		let items = root.items.map(\.item)
 		return .success(items)
 	}
 }
